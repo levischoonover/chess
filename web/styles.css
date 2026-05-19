@@ -1,0 +1,53 @@
+* {
+	box-sizing: border-box;
+	padding: 0;
+	margin: 0;
+}
+
+div, main {
+	display: flex;
+}
+
+main {
+	background-color: #f1f1f1;
+	position: fixed;
+	inset: 0;
+}
+
+.sidebar {
+	background-color: #e0e0e0;
+	width: 350px;
+}
+
+.board-area {
+	min-width: 0; /* Allows to shrink, preventing bug where board expands unnaturally */
+	flex: 1;
+	align-items: center;
+	justify-content: center;
+}
+
+#board {
+	aspect-ratio: 1;
+	height: auto;
+	/* Width is controlled in JS */
+	/* Top is controlled in JS */
+	/* Left is controlled in JS */
+}
+
+#squares {
+	flex: 1;
+	display: grid;
+	grid-template: repeat(8, 1fr) / repeat(8, 1fr);
+}
+
+.square-dark {
+	background-color: #b58863;
+}
+
+.square-light {
+	background-color: #f0d9b5;
+}
+
+@media (prefers-color-scheme: dark) {
+
+}
