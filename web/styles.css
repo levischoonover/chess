@@ -20,18 +20,23 @@ main {
 }
 
 .board-area {
-	min-width: 0; /* Allows to shrink, preventing bug where board expands unnaturally */
 	flex: 1;
-	align-items: center;
 	justify-content: center;
+}
+
+.board-area-inner {
+	flex-direction: column;
+	justify-content: center;
+	gap: 10px;
+}
+
+.player-info {
+	height: 40px;
+	background-color: aquamarine;
 }
 
 #board {
 	aspect-ratio: 1;
-	height: auto;
-	/* Width is controlled in JS */
-	/* Top is controlled in JS */
-	/* Left is controlled in JS */
 }
 
 #squares {

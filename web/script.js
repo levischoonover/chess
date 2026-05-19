@@ -7,16 +7,6 @@ const els = {
 }
 
 
-// Board resizing
-const resizeBoard = () => {
-	const newWidth = Math.min(els.board.container.parentElement.clientWidth, els.board.container.parentElement.clientHeight);
-	els.board.container.style.width = `${newWidth}px`;
-};
-window.addEventListener('resize', resizeBoard);
-resizeBoard();
-
-
-
 // Squares setup
 for (let row = 0; row < 8; row++) {
 	for (let column = 0; column < 8; column++) {
