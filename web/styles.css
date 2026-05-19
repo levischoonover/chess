@@ -35,11 +35,11 @@ main {
 	background-color: aquamarine;
 }
 
-#board {
+.board {
 	aspect-ratio: 1;
 }
 
-#squares {
+.squares {
 	flex: 1;
 	display: grid;
 	grid-template: repeat(8, 1fr) / repeat(8, 1fr);

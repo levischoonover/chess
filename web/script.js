@@ -1,10 +1,21 @@
 const els = {
 	board: {
-		container: document.getElementById('board'),
-		squares: document.getElementById('squares'),
-		pieces: document.getElementById('pieces')
+		container: document.querySelector('.board-area-inner'),
+		squares: document.querySelector('.squares'),
+		pieces: document.querySelector('.pieces')
 	}
 }
+
+
+// Board resizing
+const resizeBoard = () => {
+	const w = els.board.container.parentElement.clientWidth;
+	const h = els.board.container.parentElement.clientHeight;
+	const newWidth = Math.min(0.9 * w, 0.85 * h);
+	els.board.container.style.width = `${newWidth}px`;
+};
+window.addEventListener('resize', resizeBoard);
+resizeBoard();
 
 
 // Squares setup
