@@ -27,11 +27,9 @@ int main(int argc, char* argv[]) {
 	while (true) {
 
 		// Read input from stdin
-		std::vector<std::string> input;
-		std::string word;
-		while (std::cin >> word) {
-			input.push_back(word);
-		}
+		std::string line;
+		std::getline(std::cin, line);
+		std::vector<std::string> input = split_by_spaces(line);
 
 		// Ignore empty input to guarantee input[0]
 		if (input.empty()) {
@@ -43,7 +41,7 @@ int main(int argc, char* argv[]) {
 			if (input.size() == 1) {
 				std::cout << "id name Random Move Bot" << std::endl;
 				std::cout << "id author Levi" << std::endl;
-				std::cout << "option" << std::endl;
+				// Options would be configured here
 				std::cout << "uciok" << std::endl;
 			} else {
 				// Error: does not expect additional arguments
@@ -54,7 +52,7 @@ int main(int argc, char* argv[]) {
 		// Command: debug
 		else if (input[0] == "debug") {
 			if (input.size() == 1) {
-				// This is technically valid so just ignore
+				std::cerr << "[!] Invalid option for command `debug`: expects on | off" << std::endl;
 			}
 			else if (input.size() == 2) {
 				if (input[1] == "on") {
@@ -96,7 +94,7 @@ int main(int argc, char* argv[]) {
 
 		// Command: position
 		else if (input[0] == "position") {
-			int index = 2;
+			int index;
 			std::array<std::array<char, 8>, 8> new_position;
 			if (input[1] == "fen") {
 				fen_to_position(input[2]);
@@ -104,6 +102,7 @@ int main(int argc, char* argv[]) {
 			}
 			else if (input[1] == "startpos") {
 				new_position = starting_position;
+				index = 2;
 			}
 			else {
 				std::cerr << "[!] Invalid option for command `position`: expects fen | startpos" << std::endl;
