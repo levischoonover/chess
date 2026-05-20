@@ -26,3 +26,9 @@ for (let row = 0; row < 8; row++) {
 		els.board.squares.appendChild(newSquare);
 	}
 }
+
+
+// Chess Pieces
+PIECES = {
+
+};

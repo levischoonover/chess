@@ -9,13 +9,13 @@ div, main {
 }
 
 main {
-	background-color: #f1f1f1;
+	background-color: #e0e0e0;
 	position: fixed;
 	inset: 0;
 }
 
 .sidebar {
-	background-color: #e0e0e0;
+	background-color: #f1f1f1;
 	width: 350px;
 }
 

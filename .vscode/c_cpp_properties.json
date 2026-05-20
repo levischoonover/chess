@@ -1,0 +1,14 @@
+{
+    "configurations": [
+        {
+            "name": "chess_mac",
+            "macFrameworkPath": [
+                "/System/Library/Frameworks",
+                "/Library/Frameworks"
+            ],
+            "compilerPath": "/usr/bin/clang",
+            "cppStandard": "c++23"
+        }
+    ],
+    "version": 4
+}
