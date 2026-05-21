@@ -38,7 +38,7 @@ std::vector<std::string> split_string(std::string str, char delimiter) {
 }
 
 GameState create_starting_state() {
-	GameState state;
+	GameState state{};
 
 	state.board[0] = {
 		Piece{PieceType::Rook,   Player::Black},
@@ -51,7 +51,6 @@ GameState create_starting_state() {
 		Piece{PieceType::Rook,   Player::Black},
 	};
 	state.board[1].fill(Piece{PieceType::Pawn, Player::Black});
-
 	state.board[6].fill(Piece{PieceType::Pawn, Player::White});
 	state.board[7] = {
 		Piece{PieceType::Rook,   Player::White},
@@ -63,8 +62,6 @@ GameState create_starting_state() {
 		Piece{PieceType::Knight, Player::White},
 		Piece{PieceType::Rook,   Player::White},
 	};
-
-	state.to_move = Player::White;
 	
 	state.castling_rights = {
 		CastlingAvailabilty{true, true},
