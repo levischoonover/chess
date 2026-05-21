@@ -1,0 +1,6 @@
+{
+	"label": "MacOS: Allow permissions to control terminal (you only need to do this once)",
+	"type": "shell",
+	"command": "osascript -e 'tell application \"Terminal\"\ndo script \"echo hello\"\nend tell'",
+	"problemMatcher": []
+}

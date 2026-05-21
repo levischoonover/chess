@@ -10,7 +10,8 @@
 
 			],
 			"MIMode": "lldb",
-			"cwd": "${workspaceFolder}"
+			"cwd": "${workspaceFolder}",
+			"externalConsole": true,
 		}
 	]
 }
