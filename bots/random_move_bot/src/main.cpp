@@ -4,23 +4,11 @@
 #include <optional>
 #include <array>
 
-#include "util.hpp"
-
-
+#include "common.hpp"
 
 int main(int argc, char* argv[]) {
 
-	const std::array<std::array<char, 8>, 8> starting_position = {
-		'r', 'n', 'b', 'q', 'k', 'b', 'n', 'r', // Rank 8
-		'p', 'p', 'p', 'p', 'p', 'p', 'p', 'p',
-		'.', '.', '.', '.', '.', '.', '.', '.',
-		'.', '.', '.', '.', '.', '.', '.', '.',
-		'.', '.', '.', '.', '.', '.', '.', '.',
-		'.', '.', '.', '.', '.', '.', '.', '.',
-		'P', 'P', 'P', 'P', 'P', 'P', 'P', 'P',
-		'R', 'N', 'B', 'Q', 'K', 'B', 'N', 'R', // Rank 1
-	};
-	auto board = starting_position;
+	GameState state = create_starting_state();
 
 	/* Main loop to constantly handle user input */
 
@@ -29,7 +17,7 @@ int main(int argc, char* argv[]) {
 		// Read input from stdin
 		std::string line;
 		std::getline(std::cin, line);
-		std::vector<std::string> input = split_by_spaces(line);
+		std::vector<std::string> input = split_string(line, ' ');
 
 		// Ignore empty input to guarantee input[0]
 		if (input.empty()) {
@@ -94,14 +82,24 @@ int main(int argc, char* argv[]) {
 
 		// Command: position
 		else if (input[0] == "position") {
+			if (input.size() < 2) {
+				std::cerr << "[!] Invalid option for command `position`: expects fen | startpos" << std::endl;
+				continue;
+			}
 			int index;
-			std::array<std::array<char, 8>, 8> new_position;
+			GameState new_state;
 			if (input[1] == "fen") {
-				fen_to_position(input[2]);
-				index = 3; // To account for the extra term that is the fen itself
+				std::vector<std::string> fen(input.begin() + 2, input.begin() + 8);
+				try {
+					new_state = fen_to_gamestate(fen).value();
+				} catch (const std::bad_optional_access& e) {
+					std::cerr << "[!] Invalid FEN for command `position`" << std::endl;
+					continue;
+				}
+				index = 8; // To account for the extra terms
 			}
 			else if (input[1] == "startpos") {
-				new_position = starting_position;
+				new_state = create_starting_state();
 				index = 2;
 			}
 			else {
@@ -110,9 +108,10 @@ int main(int argc, char* argv[]) {
 			}
 
 			// Process any moves that come after
+			// TODO
 
 			// This way, the assignment only happens if no command syntax errors
-			board = new_position;
+			state = new_state;
 		}
 
 		// Unknown command
