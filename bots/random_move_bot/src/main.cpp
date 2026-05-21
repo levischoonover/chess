@@ -1,10 +1,61 @@
 #include <iostream>
 #include <string>
 #include <vector>
-#include <optional>
 #include <array>
 
 #include "common.hpp"
+
+
+
+/* DEBUG */
+
+#include <optional>
+char piece_to_char(const Piece& piece) {
+	char c = '?';
+
+	switch (piece.type) {
+		case PieceType::Pawn:   c = 'P'; break;
+		case PieceType::Knight: c = 'N'; break;
+		case PieceType::Bishop: c = 'B'; break;
+		case PieceType::Rook:   c = 'R'; break;
+		case PieceType::Queen:  c = 'Q'; break;
+		case PieceType::King:   c = 'K'; break;
+	}
+
+	// Black pieces are lowercase
+	if (piece.color == Player::Black) {
+		c = static_cast<char>(std::tolower(c));
+	}
+
+	return c;
+}
+
+void print_board(const GameState& state) {
+	std::cerr << "  A B C D E F G H\n";
+
+	for (int rank = 0; rank < 8; ++rank) {
+		std::cerr << (8 - rank) << ' ';
+
+		for (int file = 0; file < 8; ++file) {
+			const auto& square = state.board[rank][file];
+
+			if (square.has_value()) {
+				std::cerr << piece_to_char(*square);
+			} else {
+				std::cerr << '.';
+			}
+
+			std::cerr << ' ';
+		}
+
+		std::cerr << (8 - rank) << '\n';
+	}
+
+	std::cerr << "  A B C D E F G H\n";
+}
+
+
+/* END DEBUG */
 
 int main(int argc, char* argv[]) {
 
@@ -40,7 +91,7 @@ int main(int argc, char* argv[]) {
 		// Command: debug
 		else if (input[0] == "debug") {
 			if (input.size() == 1) {
-				std::cerr << "[!] Invalid option for command `debug`: expects on | off" << std::endl;
+				std::cerr << "[!] Invalid option for command `debug`: expects argument on | off" << std::endl;
 			}
 			else if (input.size() == 2) {
 				if (input[1] == "on") {
@@ -48,7 +99,7 @@ int main(int argc, char* argv[]) {
 				} else if (input[1] == "off") {
 					// Normally this would se the debug option to OFF.
 				} else {
-					std::cerr << "[!] Invalid option for command `debug`: expects on | off" << std::endl;
+					std::cerr << "[!] Invalid option for command `debug`: expects argument on | off" << std::endl;
 				}
 			}
 			else {
@@ -93,7 +144,7 @@ int main(int argc, char* argv[]) {
 				try {
 					new_state = fen_to_gamestate(fen);
 				} catch (const ParseError&) {
-					std::cerr << "[!] Invalid FEN for command `position`" << std::endl;
+					std::cerr << "[!] Invalid option for command `position`: invalid FEN" << std::endl;
 					continue;
 				}
 				index = 8; // To account for the extra terms
@@ -112,11 +163,22 @@ int main(int argc, char* argv[]) {
 				if (input[index++] != "moves") {
 					std::cerr << "[!] Invalid option for command `position`: expected \"moves\" but got \"" << input[index] << "\"" << std::endl;
 				}
-				
+				while (index < input.size()) {
+					try {
+						make_move_unsafe(new_state, string_to_move(input[index]));
+						index++;
+					} catch (const ParseError&) {
+						std::cerr << "[!] Invalid option for command `position`: invalid move \"" << input[index] << "\"" << std::endl;
+						continue;
+					}
+				}
 			}
 
-			// This way, the assignment only happens if no command syntax errors
+			// The assignment only happens if no command syntax errors
 			state = new_state;
+
+			/* DEBUG */
+			print_board(state);
 		}
 
 		// Unknown command

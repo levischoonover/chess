@@ -1,10 +1,22 @@
 #include <iostream>
 #include <vector>
 #include <string>
-#include <optional>
 #include <array>
 
 #include "common.hpp"
+
+PieceType letter_to_piece_type(const char letter) {
+	switch (std::tolower(letter)) {
+		case 'p': return PieceType::Pawn;
+		case 'n': return PieceType::Knight;
+		case 'b': return PieceType::Bishop;
+		case 'r': return PieceType::Rook;
+		case 'q': return PieceType::Queen;
+		case 'k': return PieceType::King;
+		default:
+			throw ParseError{};
+	}
+}
 
 Position string_to_position(const std::string& str) {
 	if (str.size() != 2) {
@@ -94,31 +106,10 @@ GameState fen_to_gamestate(const std::vector<std::string>& fen) {
 					throw ParseError{};
 				}
 			} else {
-				Piece new_piece;
-				new_piece.color = std::isupper(letter) ? Player::White : Player::Black;
-				switch (std::tolower(letter)) {
-					case 'p':
-						new_piece.type = PieceType::Pawn;
-						break;
-					case 'n':
-						new_piece.type = PieceType::Knight;
-						break;
-					case 'b':
-						new_piece.type = PieceType::Bishop;
-						break;
-					case 'r':
-						new_piece.type = PieceType::Rook;
-						break;
-					case 'q':
-						new_piece.type = PieceType::Queen;
-						break;
-					case 'k':
-						new_piece.type = PieceType::King;
-						break;
-					default:
-						throw ParseError{};
-				}
-				state.board[rank][file] = new_piece;
+				state.board[rank][file] = Piece{
+					letter_to_piece_type(letter),
+					std::isupper(letter) ? Player::White : Player::Black
+				};
 				if (++file > 8) {
 					throw ParseError{};
 				}
@@ -190,4 +181,39 @@ GameState fen_to_gamestate(const std::vector<std::string>& fen) {
 	
 
 	return state;
+}
+
+// Moves
+
+Move string_to_move(const std::string& str) {
+	if (str.size() < 4 || str.size() > 5) {
+		throw ParseError{};
+	}
+	Move move{
+		string_to_position(str.substr(0, 2)),
+		string_to_position(str.substr(2, 2))
+	};
+	if (str.size() == 5) {
+		move.promotion_piece = letter_to_piece_type(str[4]);
+	}
+	return move;
+}
+
+void make_move_unsafe(GameState& state, const Move& move) {
+	// THIS IS UNSAFE so moves must be valid
+	auto& starting_piece = state.board[move.start_position.rank][move.start_position.file];
+	auto& ending_piece = state.board[move.end_position.rank][move.end_position.file];
+	if (move.promotion_piece) {
+		ending_piece = Piece{
+			move.promotion_piece.value(),
+			starting_piece.value().color
+		};
+	} else {
+		ending_piece = starting_piece;
+	}
+	starting_piece = std::nullopt;
+}
+
+std::vector<Move> get_all_moves(const GameState& state) {
+	
 }

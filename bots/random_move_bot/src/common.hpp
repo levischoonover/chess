@@ -27,8 +27,8 @@ struct Piece {
 };
 
 struct Position {
-	unsigned short rank; // 8-1
-	unsigned short file; // A-H
+	unsigned short rank; // 0-7  =>  8-1
+	unsigned short file; // 0-7  =>  A-H
 };
 
 struct CastlingAvailabilty {
@@ -50,3 +50,15 @@ std::vector<std::string> split_string(std::string str, char delimiter);
 GameState create_starting_state();
 
 GameState fen_to_gamestate(const std::vector<std::string>& fen);
+
+struct Move {
+	Position start_position;
+	Position end_position;
+	std::optional<PieceType> promotion_piece;
+};
+
+Move string_to_move(const std::string& str);
+
+void make_move_unsafe(GameState& state, const Move& move);
+
+std::vector<Move> get_all_moves(const GameState& state);
