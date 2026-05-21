@@ -88,12 +88,10 @@ std::optional<GameState> fen_to_gamestate(const std::vector<std::string>& fen) {
 		unsigned short file = 0;
 		for (char letter : ranks[rank]) {
 			if (std::isdigit(letter)) {
-				unsigned short ending_file = file + letter - '0';
-				if (ending_file >= 8) {
+				// Skip this many squares
+				file += letter - '0';
+				if (file > 8) {
 					return std::nullopt;
-				}
-				while (file < ending_file) {
-					state.board[rank][file] = std::nullopt;
 				}
 			} else {
 				Piece new_piece;
@@ -121,10 +119,14 @@ std::optional<GameState> fen_to_gamestate(const std::vector<std::string>& fen) {
 						return std::nullopt;
 				}
 				state.board[rank][file] = new_piece;
-				if (++file >= 8) {
+				if (++file > 8) {
 					return std::nullopt;
 				}
 			}
+		}
+
+		if (file < 8) {
+			return std::nullopt;
 		}
 	}
 
@@ -138,24 +140,28 @@ std::optional<GameState> fen_to_gamestate(const std::vector<std::string>& fen) {
 	}
 
 	// Castling rights: fen[2]
-	for (char x : fen[2]) {
-		switch (x) {
-			case 'K':
-				// White may castle Kingside
-				state.castling_rights[static_cast<size_t>(Player::White)].kingside = true;
-				break;
-			case 'Q':
-				// White may castle Queenside
-				state.castling_rights[static_cast<size_t>(Player::White)].queenside = true;
-				break;
-			case 'k':
-				// Black may castle Kingside
-				state.castling_rights[static_cast<size_t>(Player::Black)].kingside = true;
-				break;
-			case 'q':
-				// Black may castle Queenside
-				state.castling_rights[static_cast<size_t>(Player::Black)].queenside = true;
-				break;
+	if (fen[2] != "-") {
+		for (char x : fen[2]) {
+			switch (x) {
+				case 'K':
+					// White may castle Kingside
+					state.castling_rights[static_cast<size_t>(Player::White)].kingside = true;
+					break;
+				case 'Q':
+					// White may castle Queenside
+					state.castling_rights[static_cast<size_t>(Player::White)].queenside = true;
+					break;
+				case 'k':
+					// Black may castle Kingside
+					state.castling_rights[static_cast<size_t>(Player::Black)].kingside = true;
+					break;
+				case 'q':
+					// Black may castle Queenside
+					state.castling_rights[static_cast<size_t>(Player::Black)].queenside = true;
+					break;
+				default:
+					return std::nullopt;
+			}
 		}
 	}
 
