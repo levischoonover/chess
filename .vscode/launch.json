@@ -9,7 +9,8 @@
 			"args": [
 
 			],
-			"MIMode": "lldb"
+			"MIMode": "lldb",
+			"cwd": "${workspaceFolder}"
 		}
 	]
 }
