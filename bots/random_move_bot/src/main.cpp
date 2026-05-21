@@ -91,8 +91,8 @@ int main(int argc, char* argv[]) {
 			if (input[1] == "fen") {
 				std::vector<std::string> fen(input.begin() + 2, input.begin() + 8);
 				try {
-					new_state = fen_to_gamestate(fen).value();
-				} catch (const std::bad_optional_access& e) {
+					new_state = fen_to_gamestate(fen);
+				} catch (const ParseError&) {
 					std::cerr << "[!] Invalid FEN for command `position`" << std::endl;
 					continue;
 				}
@@ -108,7 +108,12 @@ int main(int argc, char* argv[]) {
 			}
 
 			// Process any moves that come after
-			// TODO
+			if (index < input.size()) {
+				if (input[index++] != "moves") {
+					std::cerr << "[!] Invalid option for command `position`: expected \"moves\" but got \"" << input[index] << "\"" << std::endl;
+				}
+				
+			}
 
 			// This way, the assignment only happens if no command syntax errors
 			state = new_state;

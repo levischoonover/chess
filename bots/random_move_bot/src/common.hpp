@@ -5,6 +5,8 @@
 #include <string>
 #include <vector>
 
+struct ParseError{};
+
 enum class PieceType {
 	Pawn,
 	Knight,
@@ -41,10 +43,10 @@ struct GameState {
 	std::array<CastlingAvailabilty, 2> castling_rights;
 };
 
-std::optional<Position> string_to_position(const std::string& str);
+Position string_to_position(const std::string& str);
 
 std::vector<std::string> split_string(std::string str, char delimiter);
 
 GameState create_starting_state();
 
-std::optional<GameState> fen_to_gamestate(const std::vector<std::string>& fen);
+GameState fen_to_gamestate(const std::vector<std::string>& fen);

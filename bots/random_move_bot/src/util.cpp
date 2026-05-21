@@ -6,16 +6,16 @@
 
 #include "common.hpp"
 
-std::optional<Position> string_to_position(const std::string& str) {
+Position string_to_position(const std::string& str) {
 	if (str.size() != 2) {
-		return std::nullopt;
+		throw ParseError{};
 	}
 	Position square {
 		static_cast<unsigned short>(8 - (str[1] - '0')),
 		static_cast<unsigned short>(str[0] - 'a')
 	};
 	if (square.file >= 8 || square.rank >= 8) { // Unsigned so no need to compare below 0
-		return std::nullopt;
+		throw ParseError{};
 	}
 	return square;
 }
@@ -71,9 +71,9 @@ GameState create_starting_state() {
 	return state;
 }
 
-std::optional<GameState> fen_to_gamestate(const std::vector<std::string>& fen) {
+GameState fen_to_gamestate(const std::vector<std::string>& fen) {
 	if (fen.size() != 6) {
-		return std::nullopt;
+		throw ParseError{};
 	}
 
 	GameState state{};
@@ -82,7 +82,7 @@ std::optional<GameState> fen_to_gamestate(const std::vector<std::string>& fen) {
 	std::vector<std::string> ranks = split_string(fen[0], '/');
 	if (ranks.size() != state.board.size()) {
 		// Returning null means error
-		return std::nullopt;
+		throw ParseError{};
 	}
 	for (unsigned short rank = 0; rank < 8; rank++) {
 		unsigned short file = 0;
@@ -91,7 +91,7 @@ std::optional<GameState> fen_to_gamestate(const std::vector<std::string>& fen) {
 				// Skip this many squares
 				file += letter - '0';
 				if (file > 8) {
-					return std::nullopt;
+					throw ParseError{};
 				}
 			} else {
 				Piece new_piece;
@@ -116,17 +116,17 @@ std::optional<GameState> fen_to_gamestate(const std::vector<std::string>& fen) {
 						new_piece.type = PieceType::King;
 						break;
 					default:
-						return std::nullopt;
+						throw ParseError{};
 				}
 				state.board[rank][file] = new_piece;
 				if (++file > 8) {
-					return std::nullopt;
+					throw ParseError{};
 				}
 			}
 		}
 
 		if (file < 8) {
-			return std::nullopt;
+			throw ParseError{};
 		}
 	}
 
@@ -136,7 +136,7 @@ std::optional<GameState> fen_to_gamestate(const std::vector<std::string>& fen) {
 	} else if (fen[1] == "b") {
 		state.to_move = Player::Black;
 	} else {
-		return std::nullopt;
+		throw ParseError{};
 	}
 
 	// Castling rights: fen[2]
@@ -160,7 +160,7 @@ std::optional<GameState> fen_to_gamestate(const std::vector<std::string>& fen) {
 					state.castling_rights[static_cast<size_t>(Player::Black)].queenside = true;
 					break;
 				default:
-					return std::nullopt;
+					throw ParseError{};
 			}
 		}
 	}
@@ -168,16 +168,14 @@ std::optional<GameState> fen_to_gamestate(const std::vector<std::string>& fen) {
 	// En Passant target square: fen[3]
 	if (fen[3] != "-") {
 		state.en_passant_target = string_to_position(fen[3]);
-		if (!state.en_passant_target) {
-			return std::nullopt;
-		}
+		// May throw a ParseError, which will not be caught here
 	}
 
 	// Halfmove clock: fen[4]
 	// Just check if it's a digit, but it's unused
 	for (char x : fen[4]) {
 		if (!std::isdigit(x)) {
-			return std::nullopt;
+			throw ParseError{};
 		}
 	}
 
@@ -186,7 +184,7 @@ std::optional<GameState> fen_to_gamestate(const std::vector<std::string>& fen) {
 
 	for (char x : fen[5]) {
 		if (!std::isdigit(x)) {
-			return std::nullopt;
+			throw ParseError{};
 		}
 	}
 	
