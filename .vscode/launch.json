@@ -5,7 +5,7 @@
 			"name": "Debug Random Move Bot",
 			"type": "cppdbg",
 			"request": "launch",
-			"program": "${workspaceFolder}/bots/bin/Random Move Bot",
+			"program": "${workspaceFolder}/bots/debug/bin/Random Move Bot",
 			"args": [
 
 			],
