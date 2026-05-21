@@ -1,0 +1,15 @@
+{
+	"version": "0.2.0",
+	"configurations": [
+		{
+			"name": "Debug Random Move Bot",
+			"type": "cppdbg",
+			"request": "launch",
+			"program": "${workspaceFolder}/bots/bin/Random Move Bot",
+			"args": [
+
+			],
+			"MIMode": "lldb"
+		}
+	]
+}
