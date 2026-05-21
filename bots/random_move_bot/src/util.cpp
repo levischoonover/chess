@@ -38,7 +38,7 @@ std::vector<std::string> split_string(std::string str, char delimiter) {
 }
 
 GameState create_starting_state() {
-	GameState state{};
+	GameState state;
 
 	state.board[0] = {
 		Piece{PieceType::Rook,   Player::Black},
