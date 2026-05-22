@@ -21,16 +21,14 @@ enum class Player {
 	Black
 };
 
-Player other_player(const Player player);
-
 struct Piece {
 	PieceType type;
 	Player color;
 };
 
 struct Position {
-	unsigned short rank; // 0-7  =>  8-1
-	unsigned short file; // 0-7  =>  A-H
+	int rank; // 0-7  =>  8-1
+	int file; // 0-7  =>  A-H
 };
 
 struct CastlingAvailabilty {
@@ -47,10 +45,6 @@ struct GameState {
 	std::array<CastlingAvailabilty, 2> castling_rights;
 };
 
-Position string_to_position(const std::string& str);
-
-std::vector<std::string> split_string(std::string str, char delimiter);
-
 GameState create_starting_state();
 
 GameState fen_to_gamestate(const std::vector<std::string>& fen);
@@ -62,8 +56,6 @@ struct Move {
 	Position end_position;
 	std::optional<PieceType> promotion_piece;
 };
-
-Move string_to_move(const std::string& str);
 
 void make_move_unsafe(GameState& state, const Move& move);
 

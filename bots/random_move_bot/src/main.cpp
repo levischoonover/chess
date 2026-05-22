@@ -5,6 +5,7 @@
 
 #include "game_state.hpp"
 #include "search.hpp"
+#include "util.hpp"
 
 enum class EngineState {
 	Idle,
@@ -193,7 +194,7 @@ int main(int argc, char* argv[]) {
 		else if (input[0] == "go") {
 			int index = 1;
 
-			SearchConstraints search_constraints;
+			SearchConstraints search_constraints{};
 
 			auto check_for_integer_subcommand = [&](const std::string& name, std::optional<int>& store_value) {
 				if (input[index] == name) {
