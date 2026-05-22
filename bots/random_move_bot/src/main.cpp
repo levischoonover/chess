@@ -203,7 +203,7 @@ int main(int argc, char* argv[]) {
 
 				// Subcommand: ponder
 				if (input[index] == "ponder") {
-					
+
 				}
 
 				index++;

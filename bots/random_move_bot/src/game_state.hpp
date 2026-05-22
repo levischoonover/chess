@@ -21,6 +21,10 @@ enum class Player {
 	Black
 };
 
+Player other_player(const Player player) {
+	return player == Player::White ? Player::Black : Player::White;
+}
+
 struct Piece {
 	PieceType type;
 	Player color;
