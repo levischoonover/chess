@@ -7,6 +7,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 add_executable(random_move_bot_executable
 	src/main.cpp
 	src/game_state.cpp
+	src/search.cpp
 )
 
 set_target_properties(random_move_bot_executable PROPERTIES OUTPUT_NAME "Random Move Bot")

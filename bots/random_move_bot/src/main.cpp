@@ -216,7 +216,7 @@ int main(int argc, char* argv[]) {
 			try {
 				while (index < input.size()) {
 
-					std::optional<int> dummy;
+					std::optional<int> _dummy;
 
 					// Subcommand: searchmoves
 					if (input[index] == "searchmoves") {
@@ -244,11 +244,11 @@ int main(int argc, char* argv[]) {
 
 					// Various subcommands
 					else if (
-						check_for_integer_subcommand("wtime", search_constraints.wtime_ms)
+						   check_for_integer_subcommand("wtime", search_constraints.wtime_ms)
 						|| check_for_integer_subcommand("btime", search_constraints.btime_ms)
 						|| check_for_integer_subcommand("winc", search_constraints.winc_ms)
 						|| check_for_integer_subcommand("binc", search_constraints.binc_ms)
-						|| check_for_integer_subcommand("movestogo", dummy)
+						|| check_for_integer_subcommand("movestogo", _dummy)
 						|| check_for_integer_subcommand("depth", search_constraints.depth)
 						|| check_for_integer_subcommand("nodes", search_constraints.nodes)
 						|| check_for_integer_subcommand("mate", search_constraints.mate_in)
@@ -268,9 +268,12 @@ int main(int argc, char* argv[]) {
 
 
 			} catch (const ParseError&) {
-						continue;
+				std::cerr << "[!] Invalid option for command `go`: unknown subcommand `" << input[index] << "`" << std::endl;
+				continue;
 			}
 
+			Move best_move = search_position(state, search_constraints);
+			// Normally this would make another thread and return the best move upon join.
 
 		}
 

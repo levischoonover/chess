@@ -17,3 +17,5 @@ struct SearchConstraints {
 	std::optional<std::vector<Move>> moves_to_search;
 	bool infinite;
 };
+
+Move search_position(GameState state, SearchConstraints search_constraints);
