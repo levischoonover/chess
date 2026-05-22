@@ -4,7 +4,13 @@
 #include <array>
 
 #include "game_state.hpp"
+#include "search.hpp"
 
+enum class EngineState {
+	Idle,
+	Ponder,
+	Think
+};
 
 
 /* DEBUG */
@@ -60,6 +66,8 @@ void print_board(const GameState& state) {
 int main(int argc, char* argv[]) {
 
 	GameState state = create_starting_state();
+
+	EngineState engine_state = EngineState::Idle;
 
 	/* Main loop to constantly handle user input */
 
@@ -184,30 +192,85 @@ int main(int argc, char* argv[]) {
 		// Command: go
 		else if (input[0] == "go") {
 			int index = 1;
-			// Process other arguments
-			std::optional<std::vector<Move>> moves_to_search;
-			while (index < input.size()) {
 
-				// Subcommand: searchmoves
-				if (input[index] == "searchmoves") {
-					moves_to_search.emplace();
-					while (++index < input.size()) {
-						try {
-							moves_to_search->push_back(string_to_move(input[index]));
-						} catch (const ParseError&) {
-							index--; // It was not a move, so we should give it another chance, it may be another command
-							break;
-						}
+			SearchConstraints search_constraints;
+
+			auto check_for_integer_subcommand = [&](const std::string& name, std::optional<int>& store_value) {
+				if (input[index] == name) {
+					if (++index >= input.size()) {
+						std::cerr << "[!] Invalid option for command `go`: expects a number after `" << name << "`" << std::endl;
+						throw ParseError{};
+					}
+					try {
+						store_value = std::stoi(input[index]);
+						return true;
+					} catch (...) {
+						std::cerr << "[!] Invalid option for command `go`: invalid number for `" << name << "`" << std::endl;
+						throw ParseError{};
 					}
 				}
+				return false;
+			};
 
-				// Subcommand: ponder
-				if (input[index] == "ponder") {
+			// Process subcommands
+			try {
+				while (index < input.size()) {
 
+					std::optional<int> dummy;
+
+					// Subcommand: searchmoves
+					if (input[index] == "searchmoves") {
+						search_constraints.moves_to_search.emplace();
+						while (++index < input.size()) {
+							try {
+								search_constraints.moves_to_search->push_back(string_to_move(input[index]));
+							} catch (const ParseError&) {
+								index--; // It was not a move, so we should give it another chance, it may be another command
+								break;
+							}
+						}
+					}
+
+					// Subcommand: ponder
+					else if (input[index] == "ponder") {
+						engine_state = EngineState::Ponder;
+					}
+
+
+					// Subcommand: infinite
+					else if (input[index] == "infinite") {
+						search_constraints.infinite = true;
+					}
+
+					// Various subcommands
+					else if (
+						check_for_integer_subcommand("wtime", search_constraints.wtime_ms)
+						|| check_for_integer_subcommand("btime", search_constraints.btime_ms)
+						|| check_for_integer_subcommand("winc", search_constraints.winc_ms)
+						|| check_for_integer_subcommand("binc", search_constraints.binc_ms)
+						|| check_for_integer_subcommand("movestogo", dummy)
+						|| check_for_integer_subcommand("depth", search_constraints.depth)
+						|| check_for_integer_subcommand("nodes", search_constraints.nodes)
+						|| check_for_integer_subcommand("mate", search_constraints.mate_in)
+						|| check_for_integer_subcommand("movetime", search_constraints.movetime_ms)
+					) {
+						continue;
+					}
+
+					// If no command recognized, error
+					else {
+						throw ParseError{};
+					}
+
+
+					index++;
 				}
 
-				index++;
+
+			} catch (const ParseError&) {
+						continue;
 			}
+
 
 		}
 
