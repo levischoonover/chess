@@ -8,7 +8,7 @@ Move search_position(GameState state, SearchConstraints search_constraints) {
 
 	// Some annoying random number generation setup
 	std::random_device rd;
-	std::mt19937 gen(rd);
+	std::mt19937 gen(rd());
 	std::uniform_int_distribution<> dist(0, legal_moves.size() - 1);
 
 	return legal_moves[dist(gen)];
