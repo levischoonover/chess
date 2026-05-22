@@ -36,8 +36,10 @@ struct CastlingAvailabilty {
 	bool queenside;
 };
 
+const int BOARD_SIZE = 8;
+
 struct GameState {
-	std::array<std::array<std::optional<Piece>, 8>, 8> board;
+	std::array<std::array<std::optional<Piece>, BOARD_SIZE>, BOARD_SIZE> board;
 	std::optional<Position> en_passant_target;
 	Player to_move;
 	std::array<CastlingAvailabilty, 2> castling_rights;
@@ -50,6 +52,8 @@ std::vector<std::string> split_string(std::string str, char delimiter);
 GameState create_starting_state();
 
 GameState fen_to_gamestate(const std::vector<std::string>& fen);
+
+// Moves
 
 struct Move {
 	Position start_position;

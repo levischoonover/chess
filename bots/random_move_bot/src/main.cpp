@@ -3,7 +3,7 @@
 #include <vector>
 #include <array>
 
-#include "common.hpp"
+#include "game_state.hpp"
 
 
 
@@ -179,6 +179,36 @@ int main(int argc, char* argv[]) {
 
 			/* DEBUG */
 			print_board(state);
+		}
+
+		// Command: go
+		else if (input[0] == "go") {
+			int index = 1;
+			// Process other arguments
+			std::optional<std::vector<Move>> moves_to_search;
+			while (index < input.size()) {
+
+				// Subcommand: searchmoves
+				if (input[index] == "searchmoves") {
+					moves_to_search.emplace();
+					while (++index < input.size()) {
+						try {
+							moves_to_search->push_back(string_to_move(input[index]));
+						} catch (const ParseError&) {
+							index--; // It was not a move, so we should give it another chance, it may be another command
+							break;
+						}
+					}
+				}
+
+				// Subcommand: ponder
+				if (input[index] == "ponder") {
+					
+				}
+
+				index++;
+			}
+
 		}
 
 		// Unknown command
