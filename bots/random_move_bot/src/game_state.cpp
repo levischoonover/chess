@@ -218,6 +218,11 @@ void make_move_unsafe(GameState& state, const Move& move) {
 }
 
 bool is_check(const GameState& state) {
+
+	auto at = [&](Position pos) {
+		return state.board[pos.rank][pos.file];
+	};
+
 	// This checks whether the king OF THE PLAYER THAT IS TO MOVE is in check.
 	const Player attacking_pieces_color = other_player(state.to_move);
 	// To determine if a move is illegal, flip the player to move
@@ -227,19 +232,16 @@ bool is_check(const GameState& state) {
 	bool king_found = false;
 	for (int rank = 0; rank < BOARD_SIZE; rank++) {
 		for (int file = 0; file < BOARD_SIZE; file++) {
+			king_pos = {rank, file};
 			if (
-				state.board[rank][file]
-				&& state.board[rank][file]->color == state.to_move
-				&& state.board[rank][file]->type == PieceType::King
+				at(king_pos)
+				&& at(king_pos)->color == state.to_move
+				&& at(king_pos)->type == PieceType::King
 			) {
 				if (king_found) {
 					// There are two kings on the board
 					throw ParseError{};
 				} else {
-					king_pos = {
-						rank,
-						file
-					};
 					king_found = true;
 				}
 			}
@@ -259,16 +261,16 @@ bool is_check(const GameState& state) {
 			// Check for a pawn to the left
 			(
 				king_pos.file > 0
-				&& state.board[king_pos.rank - pawn_rank_advance][king_pos.file - 1]
-				&& state.board[king_pos.rank - pawn_rank_advance][king_pos.file - 1]->color == attacking_pieces_color
-				&& state.board[king_pos.rank - pawn_rank_advance][king_pos.file - 1]->type == PieceType::Pawn
+				&& at(Position{king_pos.rank - pawn_rank_advance, king_pos.file - 1})
+				&& at(Position{king_pos.rank - pawn_rank_advance, king_pos.file - 1})->color == attacking_pieces_color
+				&& at(Position{king_pos.rank - pawn_rank_advance, king_pos.file - 1})->type == PieceType::Pawn
 			)
 			// Check for a pawn to the right
 			|| (
 				king_pos.file < BOARD_SIZE - 1
-				&& state.board[king_pos.rank - pawn_rank_advance][king_pos.file + 1]
-				&& state.board[king_pos.rank - pawn_rank_advance][king_pos.file + 1]->color == attacking_pieces_color
-				&& state.board[king_pos.rank - pawn_rank_advance][king_pos.file + 1]->type == PieceType::Pawn
+				&& at(Position{king_pos.rank - pawn_rank_advance, king_pos.file + 1})
+				&& at(Position{king_pos.rank - pawn_rank_advance, king_pos.file + 1})->color == attacking_pieces_color
+				&& at(Position{king_pos.rank - pawn_rank_advance, king_pos.file + 1})->type == PieceType::Pawn
 			)
 		)
 	) {
@@ -294,9 +296,9 @@ bool is_check(const GameState& state) {
 		};
 		if (
 			in_bounds(new_pos)
-			&& state.board[king_pos.rank][king_pos.file]
-			&& state.board[king_pos.rank][king_pos.file]->color == attacking_pieces_color
-			&& state.board[king_pos.rank][king_pos.file]->type == PieceType::Knight
+			&& at(new_pos)
+			&& at(new_pos)->color == attacking_pieces_color
+			&& at(new_pos)->type == PieceType::Knight
 		) {
 			// King is attacked by knight
 			return true;
@@ -315,10 +317,9 @@ bool is_check(const GameState& state) {
 			if (!in_bounds(new_pos)) {
 				return false;
 			}
-			auto square = state.board[new_pos.rank][new_pos.file];
-			if (square) {
+			if (at(new_pos)) {
 				// The type and color of the piece determines whether the King is in check from that angle
-				return (square->type == type || square->type == PieceType::Queen) && square->color == attacking_pieces_color;
+				return (at(new_pos)->type == type || at(new_pos)->type == PieceType::Queen) && at(new_pos)->color == attacking_pieces_color;
 			}
 		}
 	};
@@ -347,9 +348,9 @@ bool is_check(const GameState& state) {
 			};
 			if (
 				in_bounds(new_pos)
-				&& state.board[new_pos.rank][new_pos.file]
-				&& state.board[new_pos.rank][new_pos.file]->type == PieceType::King
-				&& state.board[new_pos.rank][new_pos.file]->color == attacking_pieces_color
+				&& at(new_pos)
+				&& at(new_pos)->type == PieceType::King
+				&& at(new_pos)->color == attacking_pieces_color
 			) {
 				return true;
 			}
@@ -367,8 +368,13 @@ std::vector<Move> get_all_moves(const GameState& state) {
 
 	for (int rank = 0; rank < BOARD_SIZE; rank++) {
 		for (int file = 0; file < BOARD_SIZE; file++) {
+
+			auto at = [&](Position pos) {
+				return state.board[pos.rank][pos.file];
+			};
+
 			// Piece must be color of player to move
-			if (state.board[rank][file] && state.board[rank][file]->color == state.to_move) {
+			if (at(Position{rank, file}) && at(Position{rank, file})->color == state.to_move) {
 
 				/*
 				This is the meat-and-potatoes of the entire program, where the rules of Chess are
@@ -382,7 +388,7 @@ std::vector<Move> get_all_moves(const GameState& state) {
 				File On Chessboard   a  b  c  d  e  f  g  h
 				*/
 
-				Piece piece = state.board[rank][file].value();
+				Piece piece = at(Position{rank, file}).value();
 
 				auto add_move = [&](Position ending_pos, std::optional<PieceType> promotion = std::nullopt) {
 					Move new_move = Move{
@@ -415,9 +421,8 @@ std::vector<Move> get_all_moves(const GameState& state) {
 						if (!in_bounds(new_pos)) {
 							break;
 						}
-						auto square = state.board[new_pos.rank][new_pos.file];
-						if (square) {
-							if (square->type != piece.type) {
+						if (at(new_pos)) {
+							if (at(new_pos)->type != piece.type) {
 								// Piece may capture
 								add_move(new_pos);
 							}
@@ -443,7 +448,7 @@ std::vector<Move> get_all_moves(const GameState& state) {
 								continue;
 							}
 							// Pawns may move up one square if the square is empty
-							if (!state.board[rank + pawn_rank_advance][file]) {
+							if (!at(Position{rank + pawn_rank_advance, file})) {
 								if (rank + pawn_rank_advance == pawn_promotion_rank) {
 									// If it's moving to the eighth rank, the pawn promotes
 									add_move(Position{pawn_promotion_rank, file}, PieceType::Knight);
@@ -456,27 +461,27 @@ std::vector<Move> get_all_moves(const GameState& state) {
 							}
 							// Pawns may move up two if they are on the starting rank
 							if (
-								rank == pawn_promotion_rank - pawn_rank_advance * (BOARD_SIZE - 2)
-								&& !state.board[rank + pawn_rank_advance][file]
-								&& !state.board[rank + pawn_rank_advance + pawn_rank_advance][file]
+								rank == pawn_promotion_rank - pawn_rank_advance * (BOARD_SIZE - 2) // starting rank
+								&& !at(Position{rank + pawn_rank_advance, file})
+								&& !at(Position{rank + pawn_rank_advance + pawn_rank_advance, file})
 							) {
 								add_move(Position{rank + pawn_rank_advance + pawn_rank_advance, file});
 							}
 							// Pawns may capture diagonally up and to the left
 							if (
 								file > 0
-								&& state.board[rank + pawn_rank_advance][file - 1]
+								&& at(Position{rank + pawn_rank_advance, file - 1})
 								// The pieces are of opposite color
-								&& state.board[rank + pawn_rank_advance][file - 1]->color != piece.color
+								&& at(Position{rank + pawn_rank_advance, file - 1})->color != piece.color
 							) {
 								add_move(Position{rank + pawn_rank_advance, file - 1});
 							}
 							// Pawns may capture diagonally up and to the right
 							if (
 								file < BOARD_SIZE - 1
-								&& state.board[rank + pawn_rank_advance][file + 1]
+								&& at(Position{rank + pawn_rank_advance, file + 1})
 								// The pieces are of opposite color
-								&& state.board[rank + pawn_rank_advance][file + 1]->color != piece.color
+								&& at(Position{rank + pawn_rank_advance, file + 1})->color != piece.color
 							) {
 								add_move(Position{rank + pawn_rank_advance, file + 1});
 							}
@@ -503,10 +508,7 @@ std::vector<Move> get_all_moves(const GameState& state) {
 								if (
 									in_bounds(new_pos)
 									// You can't move onto your own piece
-									&& !(
-										state.board[new_pos.rank][new_pos.file]
-										&& state.board[new_pos.rank][new_pos.file]->color == piece.color
-									)
+									&& !(at(new_pos) && at(new_pos)->color == piece.color)
 								) {
 									add_move(new_pos);
 								}
@@ -553,7 +555,7 @@ std::vector<Move> get_all_moves(const GameState& state) {
 									if (
 										(rank_direction == 0 && file_direction == 0)
 										|| !in_bounds(new_pos)
-										|| (state.board[new_pos.rank][new_pos.file] && state.board[new_pos.rank][new_pos.file]->color == piece.color)
+										|| (at(new_pos) && at(new_pos)->color == piece.color)
 									) {
 										// May not stay still
 										// May not move off edge of board
