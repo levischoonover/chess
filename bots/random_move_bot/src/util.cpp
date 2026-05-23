@@ -36,7 +36,6 @@ Position string_to_position(const std::string& str) {
 	};
 	if (!in_bounds(square)) {
 		// TODO search for Position
-		// TODO search for unsigned short
 		throw ParseError{};
 	}
 	return square;

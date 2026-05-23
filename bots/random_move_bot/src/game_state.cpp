@@ -232,16 +232,17 @@ bool is_check(const GameState& state) {
 	bool king_found = false;
 	for (int rank = 0; rank < BOARD_SIZE; rank++) {
 		for (int file = 0; file < BOARD_SIZE; file++) {
-			king_pos = {rank, file};
+			const Position check_pos = {rank, file};
 			if (
-				at(king_pos)
-				&& at(king_pos)->color == state.to_move
-				&& at(king_pos)->type == PieceType::King
+				at(check_pos)
+				&& at(check_pos)->color == state.to_move
+				&& at(check_pos)->type == PieceType::King
 			) {
 				if (king_found) {
 					// There are two kings on the board
 					throw ParseError{};
 				} else {
+					king_pos = check_pos;
 					king_found = true;
 				}
 			}
@@ -392,10 +393,7 @@ std::vector<Move> get_all_moves(const GameState& state) {
 
 				auto add_move = [&](Position ending_pos, std::optional<PieceType> promotion = std::nullopt) {
 					Move new_move = Move{
-						Position{ // starting position
-							static_cast<unsigned short>(rank),
-							static_cast<unsigned short>(file)
-						},
+						Position{rank, file},
 						ending_pos,
 						promotion
 					};
@@ -408,6 +406,13 @@ std::vector<Move> get_all_moves(const GameState& state) {
 					}
 					// move is valid
 					moves.push_back(new_move);
+					// DEBUG
+					std::cerr << "Valid move: " << char('a' + file) << (8 - rank) << " to " << char('a' + ending_pos.file) << (8 - ending_pos.rank);
+					if (promotion) {
+						std::cerr << " promoting to " << (promotion == PieceType::Knight ? 'N' : promotion == PieceType::Bishop ? 'B' : promotion == PieceType::Rook ? 'R' : promotion == PieceType::Queen ? 'Q' : '?');
+					}
+					std::cerr << std::endl;
+					// END DEBUG
 				};
 
 				auto move_search_in_direction = [&](const int rank_direction, const int file_direction) {
@@ -419,15 +424,15 @@ std::vector<Move> get_all_moves(const GameState& state) {
 						new_pos.rank += rank_direction;
 						new_pos.file += file_direction;
 						if (!in_bounds(new_pos)) {
-							break;
+							return;
 						}
 						if (at(new_pos)) {
-							if (at(new_pos)->type != piece.type) {
+							if (at(new_pos)->color != piece.color) {
 								// Piece may capture
 								add_move(new_pos);
 							}
 							// Piece is blocked by another and has no further moves in this direction
-							continue;
+							return;
 						} else {
 							// Square is empty
 							add_move(new_pos);

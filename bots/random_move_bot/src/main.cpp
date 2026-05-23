@@ -255,7 +255,7 @@ int main(int argc, char* argv[]) {
 						|| check_for_integer_subcommand("mate", search_constraints.mate_in)
 						|| check_for_integer_subcommand("movetime", search_constraints.movetime_ms)
 					) {
-						continue;
+						// Nothing
 					}
 
 					// If no command recognized, error
