@@ -45,10 +45,6 @@ struct GameState {
 	std::array<CastlingAvailabilty, 2> castling_rights;
 };
 
-GameState create_starting_state();
-
-GameState fen_to_gamestate(const std::vector<std::string>& fen);
-
 // Moves
 
 struct Move {

@@ -2,6 +2,9 @@
 
 #include "game_state.hpp"
 
+GameState create_starting_state();
+GameState fen_to_gamestate(const std::vector<std::string>& fen);
+
 bool in_bounds(Position square);
 
 Player other_player(const Player player);

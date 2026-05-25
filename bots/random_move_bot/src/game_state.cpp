@@ -6,141 +6,6 @@
 #include "game_state.hpp"
 #include "util.hpp"
 
-GameState create_starting_state() {
-	GameState state{};
-
-	state.board[0] = {
-		Piece{PieceType::Rook,   Player::Black},
-		Piece{PieceType::Knight, Player::Black},
-		Piece{PieceType::Bishop, Player::Black},
-		Piece{PieceType::Queen,  Player::Black},
-		Piece{PieceType::King,   Player::Black},
-		Piece{PieceType::Bishop, Player::Black},
-		Piece{PieceType::Knight, Player::Black},
-		Piece{PieceType::Rook,   Player::Black},
-	};
-	state.board[1].fill(Piece{PieceType::Pawn, Player::Black});
-	state.board[6].fill(Piece{PieceType::Pawn, Player::White});
-	state.board[7] = {
-		Piece{PieceType::Rook,   Player::White},
-		Piece{PieceType::Knight, Player::White},
-		Piece{PieceType::Bishop, Player::White},
-		Piece{PieceType::Queen,  Player::White},
-		Piece{PieceType::King,   Player::White},
-		Piece{PieceType::Bishop, Player::White},
-		Piece{PieceType::Knight, Player::White},
-		Piece{PieceType::Rook,   Player::White},
-	};
-	
-	state.castling_rights = {
-		CastlingAvailabilty{true, true},
-		CastlingAvailabilty{true, true}
-	};
-
-	return state;
-}
-
-GameState fen_to_gamestate(const std::vector<std::string>& fen) {
-	if (fen.size() != 6) {
-		throw ParseError{};
-	}
-
-	GameState state{};
-	
-	// Process the actual position of pieces: fen[0]
-	std::vector<std::string> ranks = split_string(fen[0], '/');
-	if (ranks.size() != BOARD_SIZE) {
-		// Returning null means error
-		throw ParseError{};
-	}
-	for (int rank = 0; rank < BOARD_SIZE; rank++) {
-		int file = 0;
-		for (char letter : ranks[rank]) {
-			if (std::isdigit(letter)) {
-				// Skip this many squares
-				file += letter - '0';
-				if (file > BOARD_SIZE) {
-					throw ParseError{};
-				}
-			} else {
-				state.board[rank][file] = Piece{
-					letter_to_piece_type(letter),
-					std::isupper(letter) ? Player::White : Player::Black
-				};
-				if (++file > BOARD_SIZE) {
-					throw ParseError{};
-				}
-			}
-		}
-
-		if (file < BOARD_SIZE) {
-			throw ParseError{};
-		}
-	}
-
-	// Player to move: fen[1]
-	if (fen[1] == "w") {
-		state.to_move = Player::White;
-	} else if (fen[1] == "b") {
-		state.to_move = Player::Black;
-	} else {
-		throw ParseError{};
-	}
-
-	// Castling rights: fen[2]
-	if (fen[2] != "-") {
-		for (char x : fen[2]) {
-			switch (x) {
-				case 'K':
-					// White may castle Kingside
-					state.castling_rights[static_cast<size_t>(Player::White)].kingside = true;
-					break;
-				case 'Q':
-					// White may castle Queenside
-					state.castling_rights[static_cast<size_t>(Player::White)].queenside = true;
-					break;
-				case 'k':
-					// Black may castle Kingside
-					state.castling_rights[static_cast<size_t>(Player::Black)].kingside = true;
-					break;
-				case 'q':
-					// Black may castle Queenside
-					state.castling_rights[static_cast<size_t>(Player::Black)].queenside = true;
-					break;
-				default:
-					throw ParseError{};
-			}
-		}
-	}
-
-	// En Passant target square: fen[3]
-	if (fen[3] != "-") {
-		state.en_passant_target = string_to_position(fen[3]);
-		// May throw a ParseError, which will not be caught here
-	}
-
-	// Halfmove clock: fen[4]
-	// Just check if it's a digit, but it's unused
-	for (char x : fen[4]) {
-		if (!std::isdigit(x)) {
-			throw ParseError{};
-		}
-	}
-
-	// Fullmove Counter: fen[5]
-	// Just check if it's a digit, but it's unused
-
-	for (char x : fen[5]) {
-		if (!std::isdigit(x)) {
-			throw ParseError{};
-		}
-	}
-	
-
-	return state;
-}
-
-// Moves
 
 void make_move_unsafe(GameState& state, const Move& move) {
 	auto& starting_piece = state.board[move.start_position.rank][move.start_position.file];
@@ -216,6 +81,7 @@ void make_move_unsafe(GameState& state, const Move& move) {
 	// Switch the turn
 	state.to_move = other_player(state.to_move);
 }
+
 
 bool is_check(const GameState& state) {
 
@@ -361,9 +227,8 @@ bool is_check(const GameState& state) {
 	return false;
 }
 
-std::vector<Move> get_all_moves(const GameState& state) {
 
-	// get_controlling_squares provides some modifications that are useful for determining where the enemy King can move
+std::vector<Move> get_all_moves(const GameState& state) {
 
 	std::vector<Move> moves;
 
@@ -391,7 +256,7 @@ std::vector<Move> get_all_moves(const GameState& state) {
 
 				Piece piece = at(Position{rank, file}).value();
 
-				auto add_move = [&](Position ending_pos, std::optional<PieceType> promotion = std::nullopt) {
+				auto add_move = [&](const Position& ending_pos, const std::optional<PieceType>& promotion = std::nullopt) {
 					Move new_move = Move{
 						Position{rank, file},
 						ending_pos,
@@ -404,7 +269,7 @@ std::vector<Move> get_all_moves(const GameState& state) {
 					if (is_check(game_state_copy)) {
 						return;
 					}
-					// move is valid
+					// move is valid, so add to list
 					moves.push_back(new_move);
 					// DEBUG
 					std::cerr << "Valid move: " << char('a' + file) << (8 - rank) << " to " << char('a' + ending_pos.file) << (8 - ending_pos.rank);
@@ -473,23 +338,33 @@ std::vector<Move> get_all_moves(const GameState& state) {
 								add_move(Position{rank + pawn_rank_advance + pawn_rank_advance, file});
 							}
 							// Pawns may capture diagonally up and to the left
+							const Position left_capture_square {rank + pawn_rank_advance, file - 1};
 							if (
 								file > 0
-								&& at(Position{rank + pawn_rank_advance, file - 1})
+								&& at(left_capture_square)
 								// The pieces are of opposite color
-								&& at(Position{rank + pawn_rank_advance, file - 1})->color != piece.color
+								&& at(left_capture_square)->color != piece.color
 							) {
-								add_move(Position{rank + pawn_rank_advance, file - 1});
+								add_move(left_capture_square);
 							}
 							// Pawns may capture diagonally up and to the right
+							const Position right_capture_square {rank + pawn_rank_advance, file + 1};
 							if (
 								file < BOARD_SIZE - 1
-								&& at(Position{rank + pawn_rank_advance, file + 1})
+								&& at(right_capture_square)
 								// The pieces are of opposite color
-								&& at(Position{rank + pawn_rank_advance, file + 1})->color != piece.color
+								&& at(right_capture_square)->color != piece.color
 							) {
-								add_move(Position{rank + pawn_rank_advance, file + 1});
+								add_move(right_capture_square);
 							}
+							// Pawns may capture en passant
+							if (state.en_passant_target) {
+								if (
+									state.en_passant_target.value() == left_capture_square
+									|| state.en_passant_target.value() == right_capture_square
+								) {
+									add_move(state.en_passant_target.value());
+								}	
 						}
 						break;
 					
