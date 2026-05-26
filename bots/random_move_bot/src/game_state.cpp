@@ -46,9 +46,6 @@ void make_move_unsafe(GameState& state, const Move& move) {
 		// King moves
 		CastlingAvailabilty& this_player_castling_rights = state.castling_rights[static_cast<size_t>(starting_piece->color)];
 		if (starting_piece->type == PieceType::King) {
-			// King moves take away castling rights
-			this_player_castling_rights.kingside = false;
-			this_player_castling_rights.queenside = false;
 			// Castling moves
 			if (move.start_position.file == 4 && (move.end_position.file == 6 || move.end_position.file == 2)) {
 				// This is a castling move: Attempt to castle
@@ -75,6 +72,9 @@ void make_move_unsafe(GameState& state, const Move& move) {
 				state.board[castling_rank][ending_rook_file] = state.board[castling_rank][starting_rook_file];
 				state.board[castling_rank][starting_rook_file].reset();
 			}
+			// King moves take away castling rights
+			this_player_castling_rights.kingside = false;
+			this_player_castling_rights.queenside = false;
 		}
 
 		// Any moves in corners (usually rooks) take away castling rights
@@ -288,7 +288,7 @@ std::vector<Move> get_all_moves(const GameState& state) {
 					GameState game_state_copy = state;
 					make_move_unsafe(game_state_copy, new_move);
 					// The move will be reversed during make_move_unsafe, which is necessary for the is_check function
-					if (is_check(game_state_copy, game_state_copy.to_move)) {
+					if (is_check(game_state_copy, state.to_move)) {
 						return false;
 					}
 					// move is valid, so add to list
@@ -456,7 +456,7 @@ std::vector<Move> get_all_moves(const GameState& state) {
 						{
 							const bool check = is_check(state, state.to_move);
 							// Normal King moves
-							bool kingside_castle_blocked, queenside_castle_blocked;
+							bool kingside_castle_unblocked, queenside_castle_unblocked;
 							for (int rank_direction = -1; rank_direction <= 1; rank_direction++) {
 								for (int file_direction = -1; file_direction <= 1; file_direction++) {
 									const Position new_pos {
@@ -475,9 +475,9 @@ std::vector<Move> get_all_moves(const GameState& state) {
 									}
 									bool success = add_move(new_pos);
 									if (rank_direction == 0 && file_direction == 1) {
-										kingside_castle_blocked = success;
-									} else if (rank_direction == 1 && file_direction == 1) {
-										queenside_castle_blocked = success;
+										kingside_castle_unblocked = success;
+									} else if (rank_direction == 0 && file_direction == -1) {
+										queenside_castle_unblocked = success;
 									}
 								}
 							}
@@ -486,7 +486,7 @@ std::vector<Move> get_all_moves(const GameState& state) {
 							if (
 								this_player_castling_rights.kingside // Must have castling rights
 								&& !check // Can't castle out of check
-								&& !kingside_castle_blocked // Ensures there's no check there
+								&& kingside_castle_unblocked // Ensures there's no check there
 								&& !at(Position{rank, 5}) // Squares between king and rook must be empty
 								&& !at(Position{rank, 6})
 							) {
@@ -495,7 +495,7 @@ std::vector<Move> get_all_moves(const GameState& state) {
 							// Queenside castling
 							if (
 								this_player_castling_rights.queenside // Must have castling rights
-								&& !queenside_castle_blocked // Ensures there's no check there
+								&& queenside_castle_unblocked // Ensures there's no check there
 								&& !check // Can't castle out of check
 								&& !at(Position{rank, 1}) // Squares between king and rook must be empty
 								&& !at(Position{rank, 2})
