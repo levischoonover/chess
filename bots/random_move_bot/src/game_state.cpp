@@ -22,7 +22,7 @@ void make_move_unsafe(GameState& state, const Move& move) {
 		&& move.end_position.file == state.en_passant_target->file
 	) {
 		// Capture the piece either above or below the move position
-		state.board[move.end_position.file][move.end_position.rank + (starting_piece->color == Player::White ? 1 : -1)].reset();
+		state.board[move.end_position.rank + (starting_piece->color == Player::White ? 1 : -1)][move.end_position.file].reset();
 	}
 
 	// Set en passant target square
