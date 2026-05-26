@@ -43,35 +43,57 @@ void make_move_unsafe(GameState& state, const Move& move) {
 	}
 	// All other moves
 	else {
-		// Castling
-		if (starting_piece->type == PieceType::King && move.start_position.file == 4 && (move.end_position.file == 6 || move.end_position.file == 2)) {
-			const bool isKingside = move.end_position.file == 6;
-			const int starting_rook_file = isKingside ? 7 : 0;
-			const int ending_rook_file = isKingside ? 5 : 3;
-			const int castling_rank = starting_piece->color == Player::White ? 7 : 0;
-			bool& can_castle = isKingside
-				? state.castling_rights[static_cast<size_t>(starting_piece->color)].kingside
-				: state.castling_rights[static_cast<size_t>(starting_piece->color)].queenside;
-			// Validate position
-			if (
-				// Make sure castling is available
-				!can_castle
-				// Make sure it happens on the right rank
-				|| move.start_position.rank != castling_rank
-				|| move.end_position.rank != castling_rank
-				// Make sure there's a rook in the corner
-				|| !state.board[castling_rank][starting_rook_file]
-				|| !(state.board[castling_rank][starting_rook_file]->type == PieceType::Rook)
-				|| !(state.board[castling_rank][starting_rook_file]->color == starting_piece->color)
-			) {
-				throw ParseError{};
+		// King moves
+		CastlingAvailabilty& this_player_castling_rights = state.castling_rights[static_cast<size_t>(starting_piece->color)];
+		if (starting_piece->type == PieceType::King) {
+			// King moves take away castling rights
+			this_player_castling_rights.kingside = false;
+			this_player_castling_rights.queenside = false;
+			// Castling moves
+			if (move.start_position.file == 4 && (move.end_position.file == 6 || move.end_position.file == 2)) {
+				// This is a castling move: Attempt to castle
+				const bool isKingside = move.end_position.file == 6;
+				const int starting_rook_file = isKingside ? 7 : 0;
+				const int ending_rook_file = isKingside ? 5 : 3;
+				const int castling_rank = starting_piece->color == Player::White ? 7 : 0;
+				bool& can_castle = isKingside ? this_player_castling_rights.kingside : this_player_castling_rights.queenside;
+				// Validate position
+				if (
+					// Make sure castling is available
+					!can_castle
+					// Make sure it happens on the right rank
+					|| move.start_position.rank != castling_rank
+					|| move.end_position.rank != castling_rank
+					// Make sure there's a rook in the corner
+					|| !state.board[castling_rank][starting_rook_file]
+					|| !(state.board[castling_rank][starting_rook_file]->type == PieceType::Rook)
+					|| !(state.board[castling_rank][starting_rook_file]->color == starting_piece->color)
+				) {
+					throw ParseError{};
+				}
+				// Move the rook
+				state.board[castling_rank][ending_rook_file] = state.board[castling_rank][starting_rook_file];
+				state.board[castling_rank][starting_rook_file].reset();
 			}
-			// Move the rook
-			state.board[castling_rank][ending_rook_file] = state.board[castling_rank][starting_rook_file];
-			state.board[castling_rank][starting_rook_file].reset();
-			// Update castling rights
-			can_castle = false;
 		}
+
+		// Any moves in corners (usually rooks) take away castling rights
+		const int rook_rank = starting_piece->color == Player::White ? 7 : 0;
+		if (move.start_position.rank == rook_rank) {
+			if (move.start_position.file == 0) {
+				this_player_castling_rights.queenside = false;
+			} else if (move.start_position.file == BOARD_SIZE - 1) {
+				this_player_castling_rights.kingside = false;
+			}
+		}
+		if (move.end_position.rank == rook_rank) {
+			if (move.end_position.file == 0) {
+				this_player_castling_rights.queenside = false;
+			} else if (move.end_position.file == BOARD_SIZE - 1) {
+				this_player_castling_rights.kingside = false;
+			}
+		}
+		
 		ending_piece = starting_piece;
 	}
 
@@ -83,15 +105,13 @@ void make_move_unsafe(GameState& state, const Move& move) {
 }
 
 
-bool is_check(const GameState& state) {
+bool is_check(const GameState& state, const Player king_color) {
+
+	const Player attacking_pieces_color = other_player(king_color);
 
 	auto at = [&](Position pos) {
 		return state.board[pos.rank][pos.file];
 	};
-
-	// This checks whether the king OF THE PLAYER THAT IS TO MOVE is in check.
-	const Player attacking_pieces_color = other_player(state.to_move);
-	// To determine if a move is illegal, flip the player to move
 
 	// First, find the king
 	Position king_pos;
@@ -101,7 +121,7 @@ bool is_check(const GameState& state) {
 			const Position check_pos = {rank, file};
 			if (
 				at(check_pos)
-				&& at(check_pos)->color == state.to_move
+				&& at(check_pos)->color == king_color
 				&& at(check_pos)->type == PieceType::King
 			) {
 				if (king_found) {
@@ -121,6 +141,8 @@ bool is_check(const GameState& state) {
 	// From the perspective of the king, look for possible attacks
 	// Pawn
 	const int pawn_rank_advance = attacking_pieces_color == Player::White ? -1 : 1;
+	const std::optional<Piece> pawn_to_left = at(Position{king_pos.rank - pawn_rank_advance, king_pos.file - 1});
+	const std::optional<Piece> pawn_to_right = at(Position{king_pos.rank - pawn_rank_advance, king_pos.file + 1});
 	if (
 		// Rank is within bounds
 		in_bounds(Position{king_pos.rank - pawn_rank_advance, king_pos.file})
@@ -128,16 +150,16 @@ bool is_check(const GameState& state) {
 			// Check for a pawn to the left
 			(
 				king_pos.file > 0
-				&& at(Position{king_pos.rank - pawn_rank_advance, king_pos.file - 1})
-				&& at(Position{king_pos.rank - pawn_rank_advance, king_pos.file - 1})->color == attacking_pieces_color
-				&& at(Position{king_pos.rank - pawn_rank_advance, king_pos.file - 1})->type == PieceType::Pawn
+				&& pawn_to_left
+				&& pawn_to_left->color == attacking_pieces_color
+				&& pawn_to_left->type == PieceType::Pawn
 			)
 			// Check for a pawn to the right
 			|| (
 				king_pos.file < BOARD_SIZE - 1
-				&& at(Position{king_pos.rank - pawn_rank_advance, king_pos.file + 1})
-				&& at(Position{king_pos.rank - pawn_rank_advance, king_pos.file + 1})->color == attacking_pieces_color
-				&& at(Position{king_pos.rank - pawn_rank_advance, king_pos.file + 1})->type == PieceType::Pawn
+				&& pawn_to_right
+				&& pawn_to_right->color == attacking_pieces_color
+				&& pawn_to_right->type == PieceType::Pawn
 			)
 		)
 	) {
@@ -265,9 +287,9 @@ std::vector<Move> get_all_moves(const GameState& state) {
 					// make sure we're not in check
 					GameState game_state_copy = state;
 					make_move_unsafe(game_state_copy, new_move);
-					game_state_copy.to_move = other_player(game_state_copy.to_move);
-					if (is_check(game_state_copy)) {
-						return;
+					// The move will be reversed during make_move_unsafe, which is necessary for the is_check function
+					if (is_check(game_state_copy, game_state_copy.to_move)) {
+						return false;
 					}
 					// move is valid, so add to list
 					moves.push_back(new_move);
@@ -278,6 +300,7 @@ std::vector<Move> get_all_moves(const GameState& state) {
 					}
 					std::cerr << std::endl;
 					// END DEBUG
+					return true;
 				};
 
 				auto move_search_in_direction = [&](const int rank_direction, const int file_direction) {
@@ -359,9 +382,13 @@ std::vector<Move> get_all_moves(const GameState& state) {
 							}
 							// Pawns may capture en passant
 							if (state.en_passant_target) {
+								// The target square must be diagonally forward from the pawn
 								if (
-									state.en_passant_target.value() == left_capture_square
-									|| state.en_passant_target.value() == right_capture_square
+									state.en_passant_target->rank == rank + pawn_rank_advance
+									&& (
+										state.en_passant_target->file == file + 1
+										|| state.en_passant_target->file == file - 1
+									)
 								) {
 									add_move(state.en_passant_target.value());
 								}	
@@ -426,6 +453,9 @@ std::vector<Move> get_all_moves(const GameState& state) {
 						
 					case PieceType::King:
 						{
+							const bool check = is_check(state, state.to_move);
+							// Normal King moves
+							bool kingside_castle_blocked, queenside_castle_blocked;
 							for (int rank_direction = -1; rank_direction <= 1; rank_direction++) {
 								for (int file_direction = -1; file_direction <= 1; file_direction++) {
 									const Position new_pos {
@@ -442,8 +472,35 @@ std::vector<Move> get_all_moves(const GameState& state) {
 										// May not move into own piece
 										continue;
 									}
-									add_move(new_pos);
+									bool success = add_move(new_pos);
+									if (rank_direction == 0 && file_direction == 1) {
+										kingside_castle_blocked = success;
+									} else if (rank_direction == 1 && file_direction == 1) {
+										queenside_castle_blocked = success;
+									}
 								}
+							}
+							const CastlingAvailabilty& this_player_castling_rights = state.castling_rights[static_cast<size_t>(state.to_move)];
+							// Kingside castling
+							if (
+								this_player_castling_rights.kingside // Must have castling rights
+								&& !check // Can't castle out of check
+								&& !kingside_castle_blocked // Ensures there's no check there
+								&& !at(Position{rank, 5}) // Squares between king and rook must be empty
+								&& !at(Position{rank, 6})
+							) {
+								add_move(Position{rank, 6});
+							}
+							// Queenside castling
+							if (
+								this_player_castling_rights.queenside // Must have castling rights
+								&& !queenside_castle_blocked // Ensures there's no check there
+								&& !check // Can't castle out of check
+								&& !at(Position{rank, 1}) // Squares between king and rook must be empty
+								&& !at(Position{rank, 2})
+								&& !at(Position{rank, 3})
+							) {
+								add_move(Position{rank, 2});
 							}
 						}
 						break;
