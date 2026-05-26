@@ -391,7 +391,8 @@ std::vector<Move> get_all_moves(const GameState& state) {
 									)
 								) {
 									add_move(state.en_passant_target.value());
-								}	
+								}
+							}
 						}
 						break;
 					

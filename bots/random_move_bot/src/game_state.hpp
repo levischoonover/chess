@@ -5,8 +5,6 @@
 #include <string>
 #include <vector>
 
-struct ParseError{};
-
 enum class PieceType {
 	Pawn,
 	Knight,

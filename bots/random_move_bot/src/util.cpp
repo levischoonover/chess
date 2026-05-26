@@ -1,4 +1,5 @@
 #include "game_state.hpp"
+#include "util.hpp"
 
 
 GameState create_starting_state() {
