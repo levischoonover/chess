@@ -187,7 +187,7 @@ int main(int argc, char* argv[]) {
 			state = new_state;
 
 			/* DEBUG */
-			print_board(state);
+			// print_board(state);
 		}
 
 		// Command: go

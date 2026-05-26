@@ -294,9 +294,9 @@ std::vector<Move> get_all_moves(const GameState& state) {
 					// move is valid, so add to list
 					moves.push_back(new_move);
 					// DEBUG
-					std::cerr << "Valid move: " << char('a' + file) << (8 - rank) << " to " << char('a' + ending_pos.file) << (8 - ending_pos.rank);
+					std::cerr << char('a' + file) << (8 - rank) << char('a' + ending_pos.file) << (8 - ending_pos.rank);
 					if (promotion) {
-						std::cerr << " promoting to " << (promotion == PieceType::Knight ? 'N' : promotion == PieceType::Bishop ? 'B' : promotion == PieceType::Rook ? 'R' : promotion == PieceType::Queen ? 'Q' : '?');
+						std::cerr << (promotion == PieceType::Knight ? 'n' : promotion == PieceType::Bishop ? 'b' : promotion == PieceType::Rook ? 'r' : promotion == PieceType::Queen ? 'q' : '?');
 					}
 					std::cerr << std::endl;
 					// END DEBUG
