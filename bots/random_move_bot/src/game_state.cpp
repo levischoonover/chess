@@ -14,7 +14,18 @@ void make_move_unsafe(GameState& state, const Move& move) {
 	}
 	auto& ending_piece = state.board[move.end_position.rank][move.end_position.file];
 
-	// En passant target square
+	// Capture en passant
+	if (
+		state.en_passant_target
+		&& starting_piece->type == PieceType::Pawn
+		&& move.end_position.rank == state.en_passant_target->rank
+		&& move.end_position.file == state.en_passant_target->file
+	) {
+		// Capture the piece either above or below the move position
+		state.board[move.end_position.file][move.end_position.rank + (starting_piece->color == Player::White ? 1 : -1)].reset();
+	}
+
+	// Set en passant target square
 	if (starting_piece->color == Player::White && starting_piece->type == PieceType::Pawn && move.start_position.rank == 6 && move.end_position.rank == 4) {
 		state.en_passant_target = Position{
 			5,
@@ -181,7 +192,7 @@ bool is_check(const GameState& state, const Player king_color) {
 	for (auto& knight_move : knight_moves) {
 		const Position new_pos {
 			king_pos.rank + knight_move[0],
-			king_pos.rank + knight_move[1]
+			king_pos.file + knight_move[1]
 		};
 		if (
 			in_bounds(new_pos)
@@ -278,28 +289,41 @@ std::vector<Move> get_all_moves(const GameState& state) {
 
 				Piece piece = at(Position{rank, file}).value();
 
-				auto add_move = [&](const Position& ending_pos, const std::optional<PieceType>& promotion = std::nullopt) {
-					Move new_move = Move{
+				auto add_move = [&](const Position& ending_pos) {
+					const Move new_move = Move{
 						Position{rank, file},
-						ending_pos,
-						promotion
+						ending_pos
 					};
 					// make sure we're not in check
 					GameState game_state_copy = state;
 					make_move_unsafe(game_state_copy, new_move);
-					// The move will be reversed during make_move_unsafe, which is necessary for the is_check function
+					// The turn will be reversed during make_move_unsafe, which is necessary for the is_check function
 					if (is_check(game_state_copy, state.to_move)) {
 						return false;
 					}
 					// move is valid, so add to list
-					moves.push_back(new_move);
-					// DEBUG
-					std::cerr << char('a' + file) << (8 - rank) << char('a' + ending_pos.file) << (8 - ending_pos.rank);
-					if (promotion) {
-						std::cerr << (promotion == PieceType::Knight ? 'n' : promotion == PieceType::Bishop ? 'b' : promotion == PieceType::Rook ? 'r' : promotion == PieceType::Queen ? 'q' : '?');
+					if (piece.type == PieceType::Pawn && ending_pos.rank == (state.to_move == Player::White ? 0 : 7)) {
+						// pawn is promoting
+						for (const PieceType promotion : {PieceType::Knight, PieceType::Bishop, PieceType::Rook, PieceType::Queen}) {
+							moves.push_back(Move{
+								Position{rank, file},
+								ending_pos,
+								promotion
+							});
+						}
+						std::cerr << char('a' + file) << (8 - rank) << char('a' + ending_pos.file) << (8 - ending_pos.rank); // DEBUG
+						std::cerr << "b" << std::endl; // DEBUG
+						std::cerr << char('a' + file) << (8 - rank) << char('a' + ending_pos.file) << (8 - ending_pos.rank); // DEBUG
+						std::cerr << "n" << std::endl; // DEBUG
+						std::cerr << char('a' + file) << (8 - rank) << char('a' + ending_pos.file) << (8 - ending_pos.rank); // DEBUG
+						std::cerr << "r" << std::endl; // DEBUG
+						std::cerr << char('a' + file) << (8 - rank) << char('a' + ending_pos.file) << (8 - ending_pos.rank); // DEBUG
+						std::cerr << "q" << std::endl; // DEBUG
+					} else {
+						// all other moves
+						moves.push_back(new_move);
+						std::cerr << char('a' + file) << (8 - rank) << char('a' + ending_pos.file) << (8 - ending_pos.rank) << std::endl; // DEBUG
 					}
-					std::cerr << std::endl;
-					// END DEBUG
 					return true;
 				};
 
@@ -338,19 +362,11 @@ std::vector<Move> get_all_moves(const GameState& state) {
 							// Check for invalid position
 							if (rank == pawn_promotion_rank) {
 								// This should never happen in a normal chess game: these pawns would have been promoted
-								continue;
+								throw ParseError{};
 							}
 							// Pawns may move up one square if the square is empty
 							if (!at(Position{rank + pawn_rank_advance, file})) {
-								if (rank + pawn_rank_advance == pawn_promotion_rank) {
-									// If it's moving to the eighth rank, the pawn promotes
-									add_move(Position{pawn_promotion_rank, file}, PieceType::Knight);
-									add_move(Position{pawn_promotion_rank, file}, PieceType::Bishop);
-									add_move(Position{pawn_promotion_rank, file}, PieceType::Rook);
-									add_move(Position{pawn_promotion_rank, file}, PieceType::Queen);
-								} else {
-									add_move(Position{rank + pawn_rank_advance, file});
-								}
+								add_move(Position{rank + pawn_rank_advance, file});
 							}
 							// Pawns may move up two if they are on the starting rank
 							if (
