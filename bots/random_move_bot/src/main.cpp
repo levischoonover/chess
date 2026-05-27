@@ -2,6 +2,7 @@
 #include <string>
 #include <vector>
 #include <array>
+#include <thread>
 
 #include "game_state.hpp"
 #include "search.hpp"
@@ -273,8 +274,11 @@ int main(int argc, char* argv[]) {
 				continue;
 			}
 
-			Move best_move = search_position(state, search_constraints);
+			// Move best_move = search_position(state, search_constraints);
 			// Normally this would make another thread and return the best move upon join.
+
+			// New thread
+			
 
 		}
 

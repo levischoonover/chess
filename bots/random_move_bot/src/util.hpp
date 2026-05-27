@@ -19,3 +19,5 @@ Position string_to_position(const std::string& str);
 std::vector<std::string> split_string(std::string str, char delimiter);
 
 Move string_to_move(const std::string& str);
+
+int random_from_zero(int max);

@@ -1,3 +1,5 @@
+#include <random>
+
 #include "game_state.hpp"
 #include "util.hpp"
 
@@ -206,4 +208,12 @@ Move string_to_move(const std::string& str) {
 		move.promotion_piece = letter_to_piece_type(str[4]);
 	}
 	return move;
+}
+
+int random_from_zero(int max) {
+	// Thread local is used so the generator is not initialized every time
+	thread_local std::random_device rd;
+	thread_local std::mt19937 gen(rd());
+	std::uniform_int_distribution<> dist(0, max - 1);
+	return dist(gen);
 }

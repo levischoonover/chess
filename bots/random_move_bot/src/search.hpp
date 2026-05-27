@@ -18,4 +18,4 @@ struct SearchConstraints {
 	bool infinite;
 };
 
-Move search_position(GameState state, SearchConstraints search_constraints);
+void search_position(GameState state, SearchConstraints search_constraints);
