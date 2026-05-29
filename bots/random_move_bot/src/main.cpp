@@ -8,11 +8,6 @@
 #include "search.hpp"
 #include "util.hpp"
 
-enum class EngineState {
-	Idle,
-	Ponder,
-	Think
-};
 
 
 /* DEBUG */
@@ -115,6 +110,7 @@ int main(int argc, char* argv[]) {
 			else {
 				std::cerr << "[!] Command `debug` expects no more than one argument" << std::endl;
 			}
+			std::cerr << "[!] Warning: this command currently does nothing" << std::endl;
 		}
 
 		// Command: isready
@@ -124,12 +120,6 @@ int main(int argc, char* argv[]) {
 			} else {
 				std::cerr << "[!] Command `isready` takes no arguments" << std::endl;
 			}
-		}
-
-		// Command: register
-		else if (input[0] == "register") {
-			// This is not implemented so anything goes
-			std::cout << "registration ok" << std::endl;
 		}
 
 		// Command: ucinewgame
@@ -246,10 +236,10 @@ int main(int argc, char* argv[]) {
 
 					// Various subcommands
 					else if (
-						   check_for_integer_subcommand("wtime", search_constraints.wtime_ms)
-						|| check_for_integer_subcommand("btime", search_constraints.btime_ms)
-						|| check_for_integer_subcommand("winc", search_constraints.winc_ms)
-						|| check_for_integer_subcommand("binc", search_constraints.binc_ms)
+						   check_for_integer_subcommand("wtime", search_constraints.white_time_ms)
+						|| check_for_integer_subcommand("btime", search_constraints.black_time_ms)
+						|| check_for_integer_subcommand("winc", search_constraints.white_increment_ms)
+						|| check_for_integer_subcommand("binc", search_constraints.black_increment_ms)
 						|| check_for_integer_subcommand("movestogo", _dummy)
 						|| check_for_integer_subcommand("depth", search_constraints.depth)
 						|| check_for_integer_subcommand("nodes", search_constraints.nodes)
@@ -274,11 +264,7 @@ int main(int argc, char* argv[]) {
 				continue;
 			}
 
-			// Move best_move = search_position(state, search_constraints);
-			// Normally this would make another thread and return the best move upon join.
-
-			// New thread
-			
+			// New thread						
 
 		}
 
