@@ -3,6 +3,8 @@
 #include <vector>
 #include <array>
 #include <thread>
+#include <mutex>
+#include <atomic>
 
 #include "game_state.hpp"
 #include "search.hpp"
@@ -10,61 +12,20 @@
 
 
 
-/* DEBUG */
-
-#include <optional>
-char piece_to_char(const Piece& piece) {
-	char c = '?';
-
-	switch (piece.type) {
-		case PieceType::Pawn:   c = 'P'; break;
-		case PieceType::Knight: c = 'N'; break;
-		case PieceType::Bishop: c = 'B'; break;
-		case PieceType::Rook:   c = 'R'; break;
-		case PieceType::Queen:  c = 'Q'; break;
-		case PieceType::King:   c = 'K'; break;
-	}
-
-	// Black pieces are lowercase
-	if (piece.color == Player::Black) {
-		c = static_cast<char>(std::tolower(c));
-	}
-
-	return c;
-}
-
-void print_board(const GameState& state) {
-	std::cerr << "  A B C D E F G H\n";
-
-	for (int rank = 0; rank < 8; ++rank) {
-		std::cerr << (8 - rank) << ' ';
-
-		for (int file = 0; file < 8; ++file) {
-			const auto& square = state.board[rank][file];
-
-			if (square.has_value()) {
-				std::cerr << piece_to_char(*square);
-			} else {
-				std::cerr << '.';
-			}
-
-			std::cerr << ' ';
-		}
-
-		std::cerr << (8 - rank) << '\n';
-	}
-
-	std::cerr << "  A B C D E F G H\n";
-}
-
-
 /* END DEBUG */
 
 int main(int argc, char* argv[]) {
 
-	GameState state = create_starting_state();
+	GameState base_state = create_starting_state();
+	std::vector<Move> uci_moves;
 
-	EngineState engine_state = EngineState::Idle;
+	std::optional<Move> expected_ponder_move;
+
+	std::jthread search_thread;
+	std::mutex search_thread_mutex;
+
+	SearchRequest search_request;
+	std::atomic<bool> new_request;
 
 	/* Main loop to constantly handle user input */
 
@@ -93,26 +54,6 @@ int main(int argc, char* argv[]) {
 			}
 		}
 
-		// Command: debug
-		else if (input[0] == "debug") {
-			if (input.size() == 1) {
-				std::cerr << "[!] Invalid option for command `debug`: expects argument on | off" << std::endl;
-			}
-			else if (input.size() == 2) {
-				if (input[1] == "on") {
-					// Normally this would set the debug option to ON.
-				} else if (input[1] == "off") {
-					// Normally this would se the debug option to OFF.
-				} else {
-					std::cerr << "[!] Invalid option for command `debug`: expects argument on | off" << std::endl;
-				}
-			}
-			else {
-				std::cerr << "[!] Command `debug` expects no more than one argument" << std::endl;
-			}
-			std::cerr << "[!] Warning: this command currently does nothing" << std::endl;
-		}
-
 		// Command: isready
 		else if (input[0] == "isready") {
 			if (input.size() == 1) {
@@ -138,11 +79,12 @@ int main(int argc, char* argv[]) {
 				continue;
 			}
 			int index;
-			GameState new_state;
+			GameState new_base_state;
+			std::vector<Move> new_uci_moves;
 			if (input[1] == "fen") {
 				std::vector<std::string> fen(input.begin() + 2, input.begin() + 8);
 				try {
-					new_state = fen_to_gamestate(fen);
+					new_base_state = fen_to_gamestate(fen);
 				} catch (const ParseError&) {
 					std::cerr << "[!] Invalid option for command `position`: invalid FEN" << std::endl;
 					continue;
@@ -150,7 +92,7 @@ int main(int argc, char* argv[]) {
 				index = 8; // To account for the extra terms
 			}
 			else if (input[1] == "startpos") {
-				new_state = create_starting_state();
+				new_base_state = create_starting_state();
 				index = 2;
 			}
 			else {
@@ -165,7 +107,7 @@ int main(int argc, char* argv[]) {
 				}
 				while (index < input.size()) {
 					try {
-						make_move_unsafe(new_state, string_to_move(input[index]));
+						new_uci_moves.push_back(string_to_move(input[index]));
 						index++;
 					} catch (const ParseError&) {
 						std::cerr << "[!] Invalid option for command `position`: invalid move \"" << input[index] << "\"" << std::endl;
@@ -175,17 +117,21 @@ int main(int argc, char* argv[]) {
 			}
 
 			// The assignment only happens if no command syntax errors
-			state = new_state;
-
-			/* DEBUG */
-			// print_board(state);
+			base_state = std::move(new_base_state);
+			uci_moves = std::move(new_uci_moves);
 		}
 
 		// Command: go
 		else if (input[0] == "go") {
-			int index = 1;
 
-			SearchConstraints search_constraints{};
+			// Entering a sensitive part of the code
+			std::lock_guard<std::mutex> lock(search_thread_mutex);
+
+			search_request = SearchRequest{}; // Reset search_request to default values
+			search_request.base_game_state = base_state;
+			search_request.uci_moves = uci_moves;
+
+			int index = 1;
 
 			auto check_for_integer_subcommand = [&](const std::string& name, std::optional<int>& store_value) {
 				if (input[index] == name) {
@@ -212,10 +158,10 @@ int main(int argc, char* argv[]) {
 
 					// Subcommand: searchmoves
 					if (input[index] == "searchmoves") {
-						search_constraints.moves_to_search.emplace();
+						search_request.moves_to_consider.emplace();
 						while (++index < input.size()) {
 							try {
-								search_constraints.moves_to_search->push_back(string_to_move(input[index]));
+								search_request.moves_to_consider->push_back(string_to_move(input[index]));
 							} catch (const ParseError&) {
 								index--; // It was not a move, so we should give it another chance, it may be another command
 								break;
@@ -225,32 +171,41 @@ int main(int argc, char* argv[]) {
 
 					// Subcommand: ponder
 					else if (input[index] == "ponder") {
-						engine_state = EngineState::Ponder;
+						if (uci_moves.empty()) {
+							std::cerr << "[!] Invalid option for command `go`: ponder is not possible with that position" << std::endl;
+							throw ParseError{};
+						} else {
+							// For pondering, the last move in a position command is not real, it is merely the move that the gui expects the opponent to play
+							expected_ponder_move = search_request.uci_moves.back();
+							search_request.uci_moves.pop_back();
+						}
+						search_request.ponder = true;
 					}
 
 
 					// Subcommand: infinite
 					else if (input[index] == "infinite") {
-						search_constraints.infinite = true;
+						search_request.infinite = true;
 					}
 
 					// Various subcommands
 					else if (
-						   check_for_integer_subcommand("wtime", search_constraints.white_time_ms)
-						|| check_for_integer_subcommand("btime", search_constraints.black_time_ms)
-						|| check_for_integer_subcommand("winc", search_constraints.white_increment_ms)
-						|| check_for_integer_subcommand("binc", search_constraints.black_increment_ms)
+						   check_for_integer_subcommand("wtime", search_request.white_time_ms)
+						|| check_for_integer_subcommand("btime", search_request.black_time_ms)
+						|| check_for_integer_subcommand("winc", search_request.white_increment_ms)
+						|| check_for_integer_subcommand("binc", search_request.black_increment_ms)
 						|| check_for_integer_subcommand("movestogo", _dummy)
-						|| check_for_integer_subcommand("depth", search_constraints.depth)
-						|| check_for_integer_subcommand("nodes", search_constraints.nodes)
-						|| check_for_integer_subcommand("mate", search_constraints.mate_in)
-						|| check_for_integer_subcommand("movetime", search_constraints.movetime_ms)
+						|| check_for_integer_subcommand("depth", search_request.depth)
+						|| check_for_integer_subcommand("nodes", search_request.nodes)
+						|| check_for_integer_subcommand("mate", search_request.mate_in)
+						|| check_for_integer_subcommand("movetime", search_request.movetime_ms)
 					) {
 						// Nothing
 					}
 
 					// If no command recognized, error
 					else {
+						std::cerr << "[!] Invalid option for command `go`: unknown subcommand `" << input[index] << "`" << std::endl;
 						throw ParseError{};
 					}
 
@@ -260,12 +215,38 @@ int main(int argc, char* argv[]) {
 
 
 			} catch (const ParseError&) {
-				std::cerr << "[!] Invalid option for command `go`: unknown subcommand `" << input[index] << "`" << std::endl;
 				continue;
 			}
 
-			// New thread						
+			// The search request is ready, it will be read by the thread
+			if (!search_thread.joinable()) {
+				// There is no thread, create one
+				search_thread = std::jthread(search_position, search_request, new_request, search_thread_mutex);
+			}
 
+			new_request = true;		
+
+		} // After this point the lock on the mutex will be released
+
+		// Command: stop
+		else if (input[0] == "stop") {
+			search_thread.request_stop(); // will automatically manage stop token
+		}
+
+		// Command: ponderhit
+		else if (input[0] == "ponderhit") {
+			// Add the fake move back, because it's now real!
+			if (!expected_ponder_move) {
+				std::cerr << "[!] Command ponderhit may not be used in this context, `go ponder ...` must be called first" << std::endl;
+			} else {
+				uci_moves.push_back(expected_ponder_move.value());
+				expected_ponder_move.reset();
+			}
+		}
+
+		// Command: quit
+		else if (input[0] == "quit") {
+			return 0;
 		}
 
 		// Unknown command

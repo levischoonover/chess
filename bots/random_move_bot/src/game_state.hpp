@@ -43,6 +43,7 @@ struct GameState {
 	std::optional<Position> en_passant_target;
 	Player to_move;
 	std::array<CastlingAvailabilty, 2> castling_rights;
+	bool operator==(const GameState& other) const = default;
 };
 
 // Moves
