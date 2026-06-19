@@ -171,7 +171,7 @@ int main(int argc, char* argv[]) {
 
 					// Subcommand: ponder
 					else if (input[index] == "ponder") {
-						if (uci_moves.empty()) {
+						if (search_request.uci_moves.empty()) {
 							std::cerr << "[!] Invalid option for command `go`: ponder is not possible with that position" << std::endl;
 							throw ParseError{};
 						} else {

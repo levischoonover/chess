@@ -27,17 +27,20 @@ struct Piece {
 struct Position {
 	int rank; // 0-7  =>  8-1
 	int file; // 0-7  =>  A-H
+	bool operator==(const Position& other) const = default;
 };
 
 struct CastlingAvailabilty {
 	bool kingside;
 	bool queenside;
+	bool operator==(const CastlingAvailabilty& other) const = default;
 };
 
 const int BOARD_SIZE = 8;
 
 // This struct is ultimately what gets passed around between the various functions in game_state.cpp.
 // It can completely represent a snapshot of any chess game at a point in time.
+// TODO Constructor for starting state
 struct GameState {
 	std::array<std::array<std::optional<Piece>, BOARD_SIZE>, BOARD_SIZE> board;
 	std::optional<Position> en_passant_target;
