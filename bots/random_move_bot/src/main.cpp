@@ -231,6 +231,8 @@ int main(int argc, char* argv[]) {
 		// Command: stop
 		else if (input[0] == "stop") {
 			search_thread.request_stop(); // will automatically manage stop token
+			new_request = true; // required to wake from std::atomic::wait
+			search_thread.join();
 		}
 
 		// Command: ponderhit
